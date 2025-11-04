@@ -569,7 +569,7 @@ view: salesforce_opportunities {
     type: number
     label: "% Bateo Acumulado"
     description: "Porcentaje de bateo: Volumen Ganado / (Volumen Ganado + Volumen Perdido)"
-    sql: SAFE_DIVIDE(${total_volumen_ganado}, ${total_volumen_ganado} + ${total_volumen_perdido}) ;;
+    sql: SAFE_DIVIDE(${volumen_ganado}, ${volumen_ganado} + ${volumen_perdido}) ;;
     value_format_name: percent_2
     html:
       {% if value >= 0.7 %}
