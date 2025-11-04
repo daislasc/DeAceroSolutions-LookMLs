@@ -1,4 +1,5 @@
 # Define the database connection to be used for this model.
+
 connection: "conn_datahub-deacero_all"
 
 # include all the views
@@ -26,4 +27,3 @@ persist_with: sf_prj_opps_default_datagroup
 # Each joined view also needs to define a primary key.
 
 explore: salesforce_opportunities {}
-
