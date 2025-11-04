@@ -1,0 +1,228 @@
+# ================================================================================
+# DBT SCHEMA: salesforce_opportunities
+# ================================================================================
+# Propósito: Documentación de la tabla que alimenta el modelo LookML
+# Tabla: mart_udn_das.salesforce_opportunities
+# Query Source: consulta_clasificacion_funcional.sql
+# ================================================================================
+
+version: 2
+
+models:
+  - name: salesforce_opportunities
+    description: |
+      **Tabla analítica de oportunidades de Salesforce**
+      
+      Esta tabla consolida datos de múltiples objetos de Salesforce:
+      - Opportunity (oportunidades de venta)
+      - Account (cuentas/clientes)
+      - User (comerciales/owners)
+      - Project__c (proyectos custom)
+      - Campaign (campañas de marketing)
+      - OpportunityFieldHistory (historial de cambios de etapa)
+      
+      La tabla incluye campos calculados para:
+      - Alertas de fecha (amarilla/roja)
+      - Volúmenes segmentados (ganado/perdido/activo)
+      - Clasificación de tipo de negocio
+      - Fechas finales basadas en historial
+      - Listas de proyectos asociados
+      
+      **Fuente**: dfor-prj-prod.salesforce_dstream (Datastream CDC)
+      **Actualización**: Diaria (via dbt Cloud)
+      **Granularidad**: Una fila por oportunidad-proyecto (puede haber duplicados si una oportunidad tiene múltiples proyectos)
+    
+    meta:
+      owner: "Analytics Team"
+      looker_view: "salesforce_opportunities.view"
+      looker_model: "sf_prj_opps.model"
+      
+    columns:
+      # ===== PRIMARY KEY =====
+      - name: id_oportunidad
+        description: "Identificador único de la oportunidad en Salesforce (Opportunity.Id)"
+        tests:
+          - not_null
+      
+      # ===== DIMENSIONES DE NEGOCIO =====
+      - name: opportunity_name
+        description: "Nombre descriptivo de la oportunidad"
+        
+      - name: etapa
+        description: "Etapa actual de la oportunidad en inglés (StageName)"
+        tests:
+          - accepted_values:
+              values: ['New', 'Concurso', 'Cotización', 'Negotiation', 'Closed Won', 'Closed Lost', 'Discarded']
+      
+      - name: etapa_traducida
+        description: "Etapa actual traducida al español"
+        
+      - name: subetapa
+        description: "Sub-etapa detallada de la oportunidad"
+        
+      - name: resultado_oportunidad
+        description: "Resultado final: GANADO (Closed Won), PERDIDO (Closed Lost), NULL (en proceso)"
+        tests:
+          - accepted_values:
+              values: ['GANADO', 'PERDIDO', null]
+              quote: false
+      
+      - name: tipo_negocio
+        description: "Tipo de negocio original de Salesforce (Business_Type__c)"
+        
+      - name: tipo_de_negocio_agrupado
+        description: |
+          Tipo de negocio agrupado en categorías principales:
+          - AP: Acero Plano
+          - HP: Hojalata/Producto Plano
+          - HV: Hierro Varilla
+          - MI: Mineral
+          - Otros: Otros tipos
+          - No Clasificado: Sin clasificar
+        tests:
+          - accepted_values:
+              values: ['AP', 'HP', 'HV', 'MI', 'Otros', 'No Clasificado']
+      
+      - name: tipo_obra
+        description: "Tipo de obra: Directa, Distribuidor, etc."
+        
+      - name: tipo_mercado
+        description: "Segmento de mercado"
+        
+      - name: porcentaje_cierre
+        description: "Probabilidad de cierre (0.0 a 1.0)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      
+      # ===== DIMENSIONES TEMPORALES =====
+      - name: fecha_creacion
+        description: "Fecha y hora de creación de la oportunidad (Opportunity.CreatedDate)"
+        tests:
+          - not_null
+        
+      - name: fecha_inicio
+        description: "Fecha de inicio estimada del proyecto (Job_Start_Date__c)"
+        
+      - name: fecha_fin
+        description: "Fecha de fin estimada del proyecto (Job_End_Date__c)"
+        
+      - name: fecha_cierre
+        description: "Fecha de cierre esperada (CloseDate)"
+        
+      - name: fecha_captura
+        description: "Fecha de captura del proyecto asociado (Project__c.project_date__c)"
+        
+      - name: fecha_final
+        description: |
+          Fecha máxima cuando la oportunidad cambió a un estado cerrado:
+          - Closed Won
+          - Closed Lost
+          - Discarded
+          Si no hay historial, retorna fecha_creacion
+        
+      - name: fecha_final_estatus_abierto
+        description: |
+          Fecha máxima cuando la oportunidad cambió a un estado abierto:
+          - New
+          - Concurso
+          - Cotización
+          - Negotiation
+          Si no hay historial, retorna fecha_creacion
+      
+      - name: duracion_meses
+        description: "Duración del proyecto en meses (fecha_fin - fecha_inicio + 1)"
+        
+      # ===== ALERTAS =====
+      - name: alerta_amarilla
+        description: "Alerta 'AMARILLO' si fecha_inicio está en los próximos 7 días (incluyendo hoy), NULL en otro caso"
+        tests:
+          - accepted_values:
+              values: ['AMARILLO', null]
+              quote: false
+        
+      - name: alerta_roja
+        description: "Alerta 'ROJO' si fecha_inicio ya pasó (es menor a hoy), NULL en otro caso"
+        tests:
+          - accepted_values:
+              values: ['ROJO', null]
+              quote: false
+      
+      - name: es_oportunidad_vencida
+        description: "Indicador binario: 1 si fecha_inicio < HOY, 0 en otro caso"
+        tests:
+          - accepted_values:
+              values: [0, 1]
+      
+      - name: es_oportunidad_por_vencer
+        description: "Indicador binario: 1 si fecha_inicio está en próximos 7 días, 0 en otro caso"
+        tests:
+          - accepted_values:
+              values: [0, 1]
+      
+      # ===== VOLÚMENES =====
+      - name: volumen
+        description: "Volumen total de la oportunidad en toneladas (Opportunity.Volume__c)"
+        
+      - name: volumen_ganado
+        description: "Volumen si la oportunidad está en Closed Won, 0 en otro caso"
+        
+      - name: volumen_perdido
+        description: "Volumen si la oportunidad está en Closed Lost, 0 en otro caso"
+        
+      - name: volumen_activo
+        description: "Volumen si la oportunidad NO está cerrada (ni Closed Won ni Closed Lost), NULL en otro caso"
+      
+      # ===== RELACIONES =====
+      - name: cuenta
+        description: "Nombre de la cuenta de Salesforce (Account.SF_Name__c)"
+        
+      - name: comercial_id
+        description: "ID del usuario owner (Opportunity.OwnerId)"
+        tests:
+          - not_null
+        
+      - name: nombre_comercial
+        description: "Nombre completo del comercial owner (User.Name)"
+        
+      - name: project_id
+        description: "ID del proyecto asociado (Project__c.Id)"
+        
+      - name: project_name
+        description: "Nombre del proyecto asociado (Project__c.Name)"
+        
+      - name: commercial_system_id__c
+        description: "ID del proyecto en el sistema comercial Kraken/Masterview (Project__c.Commercial_System_ID__c)"
+        
+      - name: campania_id
+        description: "ID de la campaña asociada (Opportunity.CampaignId)"
+        
+      - name: campania
+        description: "Nombre de la campaña asociada (Campaign.Name)"
+        
+      - name: estado
+        description: "Estado geográfico del proyecto (Opportunity.State__c)"
+      
+      # ===== LISTAS AGREGADAS =====
+      - name: lista_proyectos_oportunidad
+        description: "Lista de todos los nombres de proyectos asociados a esta oportunidad, separados por ' , '"
+        
+      - name: lista_fechascaptura_oportunidad_proyecto
+        description: "Lista de fechas de captura de proyectos asociados a esta oportunidad, separadas por ' , ', en el mismo orden que lista_proyectos_oportunidad"
+      
+      # ===== PROJECT__C FIELDS =====
+      - name: total_delivered_quantity_in_ton__c
+        description: "Cantidad total entregada en toneladas (Project__c.Total_Delivered_Quantity_In_Ton__c)"
+        
+      - name: total_pending_quantity_in_ton__c
+        description: "Cantidad total pendiente en toneladas (Project__c.Total_Pending_Quantity_in_Ton__c)"
+      
+      # ===== OTROS =====
+      - name: venta_por_piezas
+        description: "Indicador booleano: TRUE si es venta por piezas (Opportunity.PI2_Venta_por_piezas__c)"
+        
+      - name: tipo_negocio_grupos
+        description: "Campo auxiliar para agrupación de tipos de negocio (duplicado de tipo_negocio)"
+

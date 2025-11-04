@@ -1,0 +1,198 @@
+# ================================================================================
+# SALESFORCE PROJECTS & OPPORTUNITIES - LookML Model
+# ================================================================================
+# Propósito: Modelo analítico para dashboard de oportunidades y proyectos Salesforce
+# Owner: Equipo de Analytics - Deacero Solutions
+# Conexión: BigQuery (Deacero DataHub)
+# ================================================================================
+
+connection: "conn_datahub-deacero_all"
+
+# =======================================
+# INCLUDES
+# =======================================
+
+# Include all views from the Salesforce directory
+include: "/models/Salesforce/*.view.lkml"
+
+# Include dashboards if any
+include: "/dashboards/salesforce/*.dashboard.lookml"
+
+# =======================================
+# DATAGROUPS (CACHING STRATEGY)
+# =======================================
+
+datagroup: sf_prj_opps_default_datagroup {
+  label: "Salesforce Opportunities - Cache Diario"
+  description: "Actualización diaria a las 6:00 AM"
+  sql_trigger: SELECT CURRENT_DATE() ;;
+  max_cache_age: "24 hours"
+}
+
+datagroup: sf_prj_opps_hourly_datagroup {
+  label: "Salesforce Opportunities - Cache Horario"
+  description: "Actualización cada hora para dashboards ejecutivos"
+  sql_trigger: SELECT FLOOR(UNIX_SECONDS(CURRENT_TIMESTAMP()) / 3600) ;;
+  max_cache_age: "1 hour"
+}
+
+# Default persistence (se puede override por explore)
+persist_with: sf_prj_opps_default_datagroup
+
+# =======================================
+# FISCAL YEAR (Año Fiscal)
+# =======================================
+
+# Configura el inicio del año fiscal (si aplica)
+# Ajustar si el año fiscal no es enero-diciembre
+fiscal_month_offset: 0  # 0 = Enero, 1 = Febrero, etc.
+
+# =======================================
+# ACCESS GRANTS (Control de Acceso)
+# =======================================
+
+# Define quién puede ver qué datos
+# Ejemplo: restringir por departamento, rol, etc.
+
+access_grant: admin_access {
+  user_attribute: department
+  allowed_values: [ "Analytics", "Admin", "IT" ]
+}
+
+access_grant: sales_team_access {
+  user_attribute: department
+  allowed_values: [ "Sales", "Commercial", "Analytics", "Admin" ]
+}
+
+access_grant: executive_access {
+  user_attribute: role
+  allowed_values: [ "Executive", "Director", "VP", "C-Level" ]
+}
+
+# =======================================
+# EXPLORES
+# =======================================
+
+# --------------------------------------
+# EXPLORE PRINCIPAL: OPORTUNIDADES
+# --------------------------------------
+
+explore: salesforce_opportunities {
+  label: "Oportunidades Salesforce"
+  description: "Análisis completo de oportunidades de Salesforce con proyectos, cuentas y métricas de negocio"
+  
+  # Configuración de cache (override default)
+  persist_with: sf_prj_opps_hourly_datagroup
+  
+  # Control de acceso
+  required_access_grants: [sales_team_access]
+  
+  # Configuración de UI
+  view_label: "Oportunidades"
+  
+  # SQL Always Where: filtros globales aplicados siempre
+  # sql_always_where: ${fecha_creacion_date} >= '2020-01-01' ;;
+  
+  # SQL Always Having: filtros en aggregates
+  # sql_always_having: ${total_volumen} > 0 ;;
+  
+  # Campos sugeridos por defecto al abrir el explore
+  fields: [
+    salesforce_opportunities.id_oportunidad,
+    salesforce_opportunities.opportunity_name,
+    salesforce_opportunities.cuenta,
+    salesforce_opportunities.nombre_comercial,
+    salesforce_opportunities.etapa_traducida,
+    salesforce_opportunities.tipo_de_negocio_agrupado,
+    salesforce_opportunities.fecha_inicio_date,
+    salesforce_opportunities.total_volumen,
+    salesforce_opportunities.count
+  ]
+  
+  # ===== JOINS =====
+  # Aquí se pueden agregar joins con otras tablas cuando las tengas disponibles
+  
+  # Ejemplo: JOIN con tabla de Cuentas (cuando esté disponible)
+  # join: salesforce_accounts {
+  #   type: left_outer
+  #   sql_on: ${salesforce_opportunities.account_id} = ${salesforce_accounts.account_id} ;;
+  #   relationship: many_to_one
+  # }
+  
+  # Ejemplo: JOIN con tabla de Usuarios (cuando esté disponible)
+  # join: salesforce_users {
+  #   type: left_outer
+  #   sql_on: ${salesforce_opportunities.comercial_id} = ${salesforce_users.user_id} ;;
+  #   relationship: many_to_one
+  # }
+  
+  # Ejemplo: JOIN con tabla de Proyectos separada (cuando esté disponible)
+  # join: salesforce_projects {
+  #   type: left_outer
+  #   sql_on: ${salesforce_opportunities.project_id} = ${salesforce_projects.project_id} ;;
+  #   relationship: one_to_many
+  # }
+  
+  # Ejemplo: JOIN con Campaigns
+  # join: salesforce_campaigns {
+  #   type: left_outer
+  #   sql_on: ${salesforce_opportunities.campania_id} = ${salesforce_campaigns.campaign_id} ;;
+  #   relationship: many_to_one
+  # }
+}
+
+# --------------------------------------
+# EXPLORE SECUNDARIO: ANÁLISIS COMERCIAL
+# --------------------------------------
+
+explore: +salesforce_opportunities {
+  label: "Análisis Comercial (Dashboard Ejecutivo)"
+  description: "Vista ejecutiva de métricas de ventas y conversión"
+  extends: [salesforce_opportunities]
+  
+  # Cache más agresivo para dashboard ejecutivo
+  persist_with: sf_prj_opps_hourly_datagroup
+  
+  # Restringir acceso a ejecutivos
+  required_access_grants: [executive_access]
+  
+  # Vista label diferente
+  view_label: "Dashboard Ejecutivo"
+  
+  # Campos sugeridos para análisis ejecutivo
+  fields: [
+    salesforce_opportunities.nombre_comercial,
+    salesforce_opportunities.tipo_de_negocio_agrupado,
+    salesforce_opportunities.fecha_creacion_month,
+    salesforce_opportunities.count,
+    salesforce_opportunities.total_volumen,
+    salesforce_opportunities.total_volumen_ganado,
+    salesforce_opportunities.total_volumen_perdido,
+    salesforce_opportunities.pct_bateo_acumulado,
+    salesforce_opportunities.tasa_conversion,
+    salesforce_opportunities.ticket_promedio_ganado
+  ]
+}
+
+# =======================================
+# NAMED VALUE FORMATS (Formatos personalizados)
+# =======================================
+
+named_value_format: toneladas_formato {
+  value_format: "#,##0.00\" Ton\""
+}
+
+named_value_format: miles_formato {
+  value_format: "#,##0.0,\" K\""
+}
+
+named_value_format: millones_formato {
+  value_format: "#,##0.00,,\" M\""
+}
+
+# =======================================
+# LOCALIZACIÓN
+# =======================================
+
+# Configura el idioma y formato de fechas
+week_start_day: monday
