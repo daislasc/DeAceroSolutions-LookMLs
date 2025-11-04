@@ -1,114 +1,51 @@
-# 📦 LookML Package - Deacero Solutions
+<h1><span style="color:#2d7eea">README - Your LookML Project</span></h1>
 
-Este paquete contiene todos los modelos LookML desarrollados para Looker en el proyecto Deacero Solutions.
+<h2><span style="color:#2d7eea">LookML Overview</span></h2>
 
-## 📁 Estructura
+LookML is a data modeling language for describing dimensions, fields, aggregates and relationships based on SQL.
 
-```
-LookML/
-├── README.md                    # Este archivo
-└── SalesforceOpps/              # Modelo de Oportunidades de Salesforce
-    ├── salesforce_opportunities.view
-    ├── sf_prj_opps.model
-    ├── README_LOOKML.md
-    ├── IMPLEMENTATION_SUMMARY.md
-    ├── _salesforce_opportunities.yml
-    ├── consulta_clasificacion_salesforce.sql
-    ├── consulta_clasificacion_funcional.sql
-    └── INDEX.md
-```
+LookML is powerful because it:
 
-## 🚀 Cómo usar este paquete
+- **Is all about reusability**: Most data analysis requires the same work to be done over and over again. You extract
+raw data, prepare it, deliver an analysis... and then are never able touse any of that work again. This is hugely
+inefficient, since the next analysis often involves many of the same steps. With LookML, once you define a
+dimension or a measure, you continue to build on it, rather than having to rewrite it again and again.
+- **Empowers end users**:  The data model that data analysts and developers create in LookML condenses and
+encapsulates the complexity of SQL, it and lets analysts get the knowledge about what their data means out of
+their heads so others can use it. This enables non-technical users to do their jobs &mdash; building dashboards,
+drilling to row-level detail, and accessing complex metrics &mdash; without having to worry about what’s behind the curtain.
+- **Allows for data governance**: By defining business metrics in LookML, you can ensure that Looker is always a
+credible single source of truth.
 
-### 1. Mover a tu nuevo proyecto
-```bash
-# Copiar toda la carpeta LookML a tu nuevo proyecto
-cp -r LookML/ /ruta/a/nuevo/proyecto/
-```
+The Looker application uses a model written in LookML to construct SQL queries against a particular database that
+business analysts can [Explore](https://cloud.google.com/looker/docs/r/exploring-data) on. For an overview on the basics of LookML, see [What is LookML?](https://cloud.google.com/looker/docs/r/what-is-lookml)
 
-### 2. Instalar en Looker
-Los archivos `.view` y `.model` deben copiarse a tu repositorio Git de Looker:
+<h2><span style="color:#2d7eea">Learn to Speak Looker</span></h2>
 
-```bash
-# Estructura típica de Looker
-your-looker-repo/
-├── models/
-│   └── sf_prj_opps.model
-└── views/
-    └── salesforce_opportunities.view
-```
+A LookML project is a collection of LookML files that describes a set of related [views](https://cloud.google.com/looker/docs/r/terms/view-file), [models](https://cloud.google.com/looker/docs/r/terms/model-file), and [Explores](https://cloud.google.com/looker/docs/r/terms/explore).
+- A [view](https://cloud.google.com/looker/docs/r/terms/view-file) (.view files) contains information about how to access or calculate information from each table (or
+across multiple joined tables). Here you’ll typically define the view, its dimensions and measures, and its field sets.
+- A [model](https://cloud.google.com/looker/docs/r/terms/model-file) (.model file) contains information about which tables to use and how they should be joined together.
+Here you’ll typically define the model, its Explores, and its joins.
+- An [Explore](https://cloud.google.com/looker/docs/r/terms/explore) is the starting point for business users to query data, and it is the end result of the LookML you are
+writing. To see the Explores in this project, select an Explore from the Explore menu.
 
-### 3. Crear la tabla fuente en BigQuery
-Ejecuta uno de los queries SQL:
-- `consulta_clasificacion_salesforce.sql` (versión completa)
-- `consulta_clasificacion_funcional.sql` (versión optimizada)
+<h2><span style="color:#2d7eea">Exploring Data</span></h2>
 
-```sql
-CREATE OR REPLACE TABLE mart_udn_das.salesforce_opportunities AS (
-  -- Pegar contenido del SQL aquí
-)
-```
+Ad-hoc data discovery is one of Looker’s most powerful and unique features. As you evaluate use cases for your
+trial, consider what business areas you would like to explore. Open the Explore menu in the main navigation to see
+the Explores you are building.
 
-### 4. Configurar conexión en Looker
-En el archivo `.model`, ajustar:
-```lookml
-connection: "tu_conexion_bigquery"
-```
+<h2><span style="color:#2d7eea">The Development Workflow</span></h2>
 
-## 📚 Documentación
+To support a multi-developer environment, Looker is integrated with Git for version control. Follow [these directions](https://cloud.google.com/looker/docs/r/develop/git-setup)
+to set up Git for your project. To edit LookML, expand the Develop drop-down and toggle on [Development Mode](https://cloud.google.com/looker/docs/r/terms/dev-mode). In
+Development Mode, changes you make to the LookML model exist only in your account until you commit the
+changes and push them to your production model.
 
-Cada subcarpeta contiene su propia documentación:
-- `README_LOOKML.md`: Guía completa del modelo
-- `IMPLEMENTATION_SUMMARY.md`: Resumen ejecutivo
-- `INDEX.md`: Lista de archivos y su propósito
+<h2><span style="color:#2d7eea">Additional Resources</span></h2>
 
-## 🔧 Requisitos
-
-- **Looker**: Versión 7.0+
-- **BigQuery**: Proyecto con datos de Salesforce (vía Datastream)
-- **dbt** (opcional): Para gestionar la tabla fuente
-- **Salesforce**: Objetos requeridos: Opportunity, Account, User, Project__c, Campaign, OpportunityFieldHistory
-
-## 📞 Soporte
-
-**Owner**: Equipo de Analytics - Deacero Solutions  
-**Fecha de Creación**: 3 de Noviembre, 2025  
-**Versión**: 1.0
-
----
-
-## 📦 Proyectos Incluidos
-
-### 1. **SalesforceOpps** ✅
-- **Descripción**: Modelo analítico completo de oportunidades de Salesforce
-- **Estado**: Producción Ready
-- **Archivos**: 7
-- **Líneas de Código**: ~1,600+
-- **Features**: 
-  - 60+ dimensiones
-  - 25+ measures
-  - HTML formatting
-  - Access grants
-  - Cache strategy
-
----
-
-## 🎯 Próximos Proyectos (Roadmap)
-
-### 2. **SalesforceProjects** (Planificado)
-- Modelo específico para Project__c
-- Integración con sistema comercial (Kraken/Masterview)
-
-### 3. **SalesforceAccounts** (Planificado)
-- Análisis de cuentas y clientes
-- Segmentación de clientes
-
-### 4. **SalesforceExecutive** (Planificado)
-- Dashboard ejecutivo consolidado
-- KPIs de alto nivel
-
----
-
-**📦 Package Version**: 1.0.0  
-**📅 Last Updated**: 2025-11-03
-
+To learn more about LookML and how to develop visit:
+- [Looker User Guide](https://looker.com/guide)
+- [Looker Help Center](https://help.looker.com)
+- [Looker University](https://training.looker.com/)
