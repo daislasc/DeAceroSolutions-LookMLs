@@ -561,7 +561,9 @@ view: salesforce_opportunities {
     type: number
     label: "% Conversión"
     description: "Tasa de conversión (Ganadas / Total de cerradas)"
-    sql: SAFE_DIVIDE(${count_oportunidades_ganadas}, ${count_oportunidades_ganadas} + ${count_oportunidades_perdidas}) ;;
+    sql: SAFE_DIVIDE(${volumen_ganado} /
+(${volumen_ganado} +
+ ${volumen_perdido})) ;;
     value_format_name: percent_2
   }
 
