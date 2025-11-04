@@ -561,9 +561,7 @@ view: salesforce_opportunities {
     type: number
     label: "% Conversión"
     description: "Tasa de conversión (Ganadas / Total de cerradas)"
-    sql: SAFE_DIVIDE(${volumen_ganado} /
-(${volumen_ganado} +
- ${volumen_perdido})) ;;
+    sql: SAFE_DIVIDE(${count_oportunidades_ganadas}, ${count_oportunidades_ganadas} + ${count_oportunidades_perdidas}) ;;
     value_format_name: percent_2
   }
 
@@ -571,16 +569,19 @@ view: salesforce_opportunities {
     type: number
     label: "% Bateo Acumulado"
     description: "Porcentaje de bateo: Volumen Ganado / (Volumen Ganado + Volumen Perdido)"
-    sql: SAFE_DIVIDE(${volumen_ganado}, ${volumen_ganado} + ${volumen_perdido}) ;;
+    sql: SAFE_DIVIDE(
+          ${total_volumen_ganado},
+          ${total_volumen_ganado} + ${total_volumen_perdido}
+        ) ;;
     value_format_name: percent_2
     html:
-      {% if value >= 0.7 %}
-        <span style="color: #0F9D58; font-weight: bold;">{{ rendered_value }}</span>
-      {% elsif value >= 0.5 %}
-        <span style="color: #F4B400; font-weight: bold;">{{ rendered_value }}</span>
-      {% else %}
-        <span style="color: #DB4437; font-weight: bold;">{{ rendered_value }}</span>
-      {% endif %} ;;
+    {% if value >= 0.7 %}
+      <span style="color: #0F9D58; font-weight: bold;">{{ rendered_value }}</span>
+    {% elsif value >= 0.5 %}
+      <span style="color: #F4B400; font-weight: bold;">{{ rendered_value }}</span>
+    {% else %}
+      <span style="color: #DB4437; font-weight: bold;">{{ rendered_value }}</span>
+    {% endif %} ;;
   }
 
   measure: ticket_promedio_ganado {
